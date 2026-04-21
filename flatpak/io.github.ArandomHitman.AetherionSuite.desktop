@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Aetherion Astrophysics Suite
+GenericName=Astrophysics Simulation
+Comment=Interactive black hole simulation and astrophysics research tool
+Exec=blackhole-sim
+Icon=io.github.ArandomHitman.AetherionSuite
+Type=Application
+Categories=Education;Science;
+Keywords=blackhole;simulation;astrophysics;physics;astronomy;
+StartupNotify=true

@@ -1,0 +1,27 @@
+build/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editor artifacts
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Compiled objects / intermediate output
+*.o
+*.a
+*.so
+*.dylib
+
+# Flatpak build artifacts
+.flatpak-builder/
+build-flatpak/
+*.flatpak
