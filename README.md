@@ -80,7 +80,7 @@ Unlike traditional simulation tools, Aetherion is built around **reproducibility
 
 ```bash
 brew install cmake sfml glm
-git clone https://github.com/ArandomHitman/Aetherion-Astrophysics-Suite.git
+git clone https://github.com/0xLiam0920/Aetherion-Astrophysics-Suite.git
 cd Aetherion-Astrophysics-Suite
 mkdir build && cd build
 cmake ..
@@ -97,7 +97,7 @@ sudo apt install cmake g++ \
     libglew-dev \
     qt6-base-dev qt6-charts-dev \
     qt6-qpa-plugins           # XCB platform plugin — required at runtime
-git clone https://github.com/ArandomHitman/Aetherion-Astrophysics-Suite.git
+git clone https://github.com/0xLiam0920/Aetherion-Astrophysics-Suite.git
 cd Aetherion-Astrophysics-Suite
 mkdir build && cd build
 cmake ..
@@ -122,8 +122,8 @@ sudo dnf install cmake gcc-c++ \
 ```bash
 flatpak install flathub org.kde.Platform//6.8 org.kde.Sdk//6.8
 flatpak-builder --user --install --force-clean build-flatpak \
-    flatpak/io.github.ArandomHitman.AetherionSuite.json
-flatpak run io.github.ArandomHitman.AetherionSuite
+    flatpak/io.github.0xLiam0920.AetherionSuite.json
+flatpak run io.github.0xLiam0920.AetherionSuite
 ```
 
 ### Physics regression tests
