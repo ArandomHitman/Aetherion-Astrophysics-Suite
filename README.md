@@ -1,6 +1,6 @@
 # Aetherion — Astrophysics Simulation Suite
 
-[![Version](https://img.shields.io/badge/version-0.1.0--beta1-blue)]
+[![Version](https://img.shields.io/badge/version-0.1.1--beta1-blue)]
 [![Status](https://img.shields.io/badge/status-beta-orange)]
 [![License](https://img.shields.io/badge/license-MIT-green)]
 
