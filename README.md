@@ -18,16 +18,16 @@ DO NOT EXPECT PERFECT STABILITY OR COMPLETE FEATURE SET YET!
 ## Table of Contents
 
 - [About](#about)
-- [Core Features](#core-features)
-- [Architecture](#architecture)
+- [Dependencies](#DEPENDENCIES.md)
+- [FAQ & Troubleshooting guidelines](#FAQ_TROUBLESHOOTING.md)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Data Analysis](#data-analysis)
 - [Configuration](#configuration)
 - [Known Issues](#known-issues)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+- [Roadmap](#Roadmap.md)
+- [Contributing](#contributing.md)
+- [License](#LICENSE.md)
 
 ---
 
