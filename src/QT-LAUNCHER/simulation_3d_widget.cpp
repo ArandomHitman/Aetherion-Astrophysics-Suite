@@ -831,10 +831,15 @@ void Simulation3DWidget::onUpdate()
         s.quad.drawQuad();
     }
 
+    // ── Ensure default framebuffer is bound before HUD / display ──
+    // bloom.execute() saves+restores prevFBO, which ends up as sceneFBO (not 0).
+    // If we skip the HUD block, display() would be called with sceneFBO still bound,
+    // causing a stall / black frame on macOS Metal-backed GL. Always rebind FBO 0 here.
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, w, h);
+
     // ── HUD overlay ──
     if ((s.showHUD || s.showDebugHUD) && s.fontLoaded) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, w, h);
         for (int i = 0; i < 8; ++i) {
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(GL_TEXTURE_2D, 0);

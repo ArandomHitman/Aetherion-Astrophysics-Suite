@@ -1094,10 +1094,14 @@ int main(int argc, char* argv[]) {
         }
 
         /*--------- HUD overlay (pure GL bitmap font) ---------*/
+        // Always rebind FBO 0 before the HUD (or display) — bloom.execute() saves+restores
+        // prevFBO which ends up as sceneFBO, not 0. Without this, display() runs with
+        // sceneFBO bound, causing a stall / blank frame on macOS Metal-backed GL.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, w, h);
+
         bool drawAnyHUD = (showHUD || showDebugHUD) && fontLoaded;
         if (drawAnyHUD) {
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glViewport(0, 0, w, h);
 
             // Clean up texture units from bloom
             for (int i = 0; i < 8; ++i) {
