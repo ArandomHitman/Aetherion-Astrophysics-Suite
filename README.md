@@ -4,7 +4,7 @@
 [![Status](https://img.shields.io/badge/status-beta-orange)]
 [![License](https://img.shields.io/badge/license-MIT-green)]
 
-Aetherion is a modular, open source astrophysics simulation and analysis suite designed for precision experimentation, visualization, and reproducible research workflows.
+Aetherion is an open source astrophysics simulation and analysis suite designed for precision experimentation, visualization, and reproducible research around BLACK HOLES.
 
 DISCLAIMER!
                                                        
