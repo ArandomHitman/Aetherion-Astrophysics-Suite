@@ -11,6 +11,8 @@ DISCLAIMER!
 As of 17-04-2026, Aetherion is in active BETA, with core features implemented and undergoing testing. 
 DO NOT EXPECT PERFECT STABILITY OR COMPLETE FEATURE SET YET!
 
+SIDE NOTE: Since Apple forces you to pay 100 dollars a year to get your app certified/verified, I had to resort to ad-hoc signing. If you get a pop-up on MACOS saying "Apple cannot verify that this app is free from malware", safely ignore it.
+
 **Physics Model Limitations:**
 - **Temperature/Sound Speed Model:** The gas temperature calculations assume ideal gas behavior, which is optimistic for hot accreting plasma near black holes where radiation pressure and magnetic effects dominate. This is fine for Bondi radius order-of-magnitude estimates but should not be relied upon for precision plasma dynamics.
 ---
