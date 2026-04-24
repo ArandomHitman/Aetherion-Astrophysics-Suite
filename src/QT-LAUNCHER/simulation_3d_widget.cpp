@@ -4,6 +4,7 @@
 // ============================================================
 
 #include "simulation_3d_widget.h"
+#include "custom_bh_dialog.h"
 
 // All GL / SFML / simulation headers go here, NOT in the .h
 #include "platform.hpp"
@@ -592,6 +593,12 @@ Simulation3DWidget::Simulation3DWidget(QWidget *parent)
 
 Simulation3DWidget::~Simulation3DWidget() = default;
 
+void Simulation3DWidget::setPendingConfig(const CustomBH3DConfig &cfg)
+{
+    pendingConfig_    = cfg;
+    hasPendingConfig_ = true;
+}
+
 void Simulation3DWidget::onInit()
 {
     (void)setActive(true);
@@ -619,6 +626,22 @@ void Simulation3DWidget::onInit()
     s.hostGalaxyEnabled = prof.defaultHostGalaxy;
     s.labEnabled        = prof.defaultLAB;
     s.cgmEnabled        = prof.defaultCGM;
+
+    // ── Apply custom config if one was provided before onInit() ──
+    if (hasPendingConfig_) {
+        const auto& c = pendingConfig_;
+        s.config.blackHole.spinParameter  = c.spinParameter;
+        s.config.disk.innerRadius         = c.diskInnerRadius;
+        s.config.disk.outerRadius         = c.diskOuterRadius;
+        s.config.disk.halfThickness       = c.diskHalfThickness;
+        s.config.disk.peakTemp            = c.diskPeakTemp;
+        s.config.jet.length               = c.jetLength;
+        s.jetsEnabled                     = c.jetsEnabled;
+        s.blrEnabled                      = c.blrEnabled;
+        s.dopplerEnabled                  = c.dopplerEnabled;
+        s.hostGalaxyEnabled               = c.hostGalaxyEnabled;
+        hasPendingConfig_ = false;
+    }
 
     // ── Viewport ──
     const auto sz = getSize();

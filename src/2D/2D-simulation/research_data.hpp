@@ -43,7 +43,7 @@ SIMULATION BOUNDS (Sgr A* baseline):
 - r_SOI ≈ 1e6 rg (3 pc)
 - t_final = 10^5 M (~1 day)
 
-za very critical bug: ENERGY_DRIFT < 1e-10, J_CONSERVATION < 1e-12
+Maybe a bug if it still exists: ENERGY_DRIFT < 1e-10, J_CONSERVATION < 1e-12
 
 
               _-o#&&*''''?d:>b\_
@@ -56,7 +56,7 @@ za very critical bug: ENERGY_DRIFT < 1e-10, J_CONSERVATION < 1e-12
  ?$.            :MMMMMMMMMMMMMMMMMMM/HMMM|`*L
 |               |MMMMMMMMMMMMMMMMMMMMbMH'   T,
 $H#:            `*MMMMMMMMMMMMMMMMMMMMb#}'  `?
-]MMH#             ""*""""*#MMMMMMMMMMMMM'    -
+]MMH#             ""*""""*#MMMMMMMMMMMM'     -
 MMMMMb_                   |MMMMMMMMMMMP'     :
 HMMMMMMMHo                 `MMMMMMMMMT       .
 ?MMMMMMMMP                  9MMMMMMMM}       -
@@ -75,13 +75,14 @@ HMMMMMMMHo                 `MMMMMMMMMT       .
 /*---------- Header files ---------*/
 #pragma once
 #include <vector>
+#include <deque>
 #include <utility>
 #include <string>
 #include <cmath>
 #include <algorithm>
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846 // Yes, this is a nitpick. We need 20 or so significant figures since precession and photon angles can be extremely small. something something radians as well
 #endif
 
 /*--------- Precession tracking for orbiting bodies ---------*/
@@ -139,7 +140,7 @@ struct ConservationTracker {
     double E_initial = 0.0;
     double E_current = 0.0;
     double maxAbsDrift = 0.0;
-    std::vector<std::pair<double, double>> driftHistory;
+    std::deque<std::pair<double, double>> driftHistory; // deque for O(1) pop_front(); was std::vector [FIXED 2026-04-24]
     static constexpr size_t MAX_HISTORY = 2000;
     int sampleCounter = 0;
 
@@ -160,14 +161,14 @@ struct ConservationTracker {
             ? (E_now - E_initial) / E_initial : 0.0;
         maxAbsDrift = std::max(maxAbsDrift, std::abs(drift));
 
-        // only record every 50 steps — at 4000 sub-steps/frame we'd generate thousands of
+        // only record every 50 steps, at 4000 sub-steps/frame we'd generate thousands of
         // history points per second otherwise, which would fill MAX_HISTORY almost instantly.
         // 50 is a rough balance between resolution and not eating all your RAM.
         sampleCounter++;
         if (sampleCounter % 50 == 0) {
             driftHistory.emplace_back(properTime, drift);
-            if (driftHistory.size() > MAX_HISTORY)
-                driftHistory.erase(driftHistory.begin());
+            if (driftHistory.size() > MAX_HISTORY)      // [FIXED 2026-04-24: was erase(begin()), O(n) on vector — now pop_front() on deque, O(1)]
+                driftHistory.pop_front();
         }
     }
 
@@ -296,5 +297,8 @@ struct DataPanelInfo {
     double gasTemperatureK   = 1e7;
     double soundSpeed_c      = 0.0;
 
-    // Additional fields can be added whenever you feel like it. I need ideas tbh.
+    // Lensing
+    double photonImpactParam = 0.0;
+    double photonDeflectionDeg = 0.0;
+    // ok this should be enough. Lensing is a prototype for now, we can always add more fields later
 };

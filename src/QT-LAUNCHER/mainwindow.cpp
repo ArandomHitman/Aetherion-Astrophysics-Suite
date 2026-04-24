@@ -4,6 +4,7 @@
 #include "simulation_2d_widget.h"
 #include "simulation_3d_widget.h"
 #include "keybindbuttonwidget.h"
+#include "custom_bh_dialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFrame>
@@ -806,12 +807,12 @@ QWidget* MainWindow::createSimulationPage()
     layout->addLayout(presetRow);
 
     QHBoxLayout *customRow = new QHBoxLayout();
-    QLineEdit *customNameEdit = new QLineEdit("Custom Black Hole");
-    customNameEdit->setPlaceholderText("Tab name");
-    QCheckBox *custom3DCheck = new QCheckBox("Use 3D renderer");
-    QPushButton *openCustomButton = new QPushButton("Open Custom Tab");
-    customRow->addWidget(customNameEdit, 1);
-    customRow->addWidget(custom3DCheck);
+    QPushButton *openCustomButton = new QPushButton("Build Custom Black Hole…");
+    openCustomButton->setObjectName("launchButton");
+    openCustomButton->setToolTip(
+        "Opens a dialog to configure every parameter of a custom black hole "
+        "and launch it in either the 2D or 3D simulation.");
+    customRow->addStretch();
     customRow->addWidget(openCustomButton);
     layout->addLayout(customRow);
 
@@ -862,15 +863,16 @@ QWidget* MainWindow::createSimulationPage()
         }
         statusLabel->setText("Opened preset tab: " + presetName);
     });
-    connect(openCustomButton, &QPushButton::clicked, this, [this, customNameEdit, custom3DCheck] {
-        QString tabTitle = customNameEdit->text().trimmed();
-        if (tabTitle.isEmpty()) {
-            tabTitle = "Custom Black Hole";
-        }
-        if (custom3DCheck->isChecked()) {
-            openSimulationTab3D(tabTitle);
+    connect(openCustomButton, &QPushButton::clicked, this, [this] {
+        CustomBlackHoleDialog dlg(this);
+        if (dlg.exec() != QDialog::Accepted) return;
+
+        const QString tabTitle = dlg.tabName();
+        if (dlg.is3D()) {
+            const CustomBH3DConfig cfg = dlg.to3DConfig();
+            openSimulationTab3D(tabTitle, &cfg);
         } else {
-            openSimulationTab2D(tabTitle);
+            openSimulationTab2D(tabTitle, dlg.toJsonState());
         }
         statusLabel->setText("Opened custom tab: " + tabTitle);
     });
@@ -944,10 +946,13 @@ void MainWindow::openSimulationTab2D(const QString &tabTitle, const QJsonObject 
     updateSimulationEmptyState();
 }
 
-void MainWindow::openSimulationTab3D(const QString &tabTitle)
+void MainWindow::openSimulationTab3D(const QString &tabTitle,
+                                      const CustomBH3DConfig *cfg)
 {
     if (!simTabs) return;
     auto *widget = new Simulation3DWidget(simTabs);
+    if (cfg)
+        widget->setPendingConfig(*cfg);
     const int index = simTabs->addTab(widget, tabTitle);
     simTabs->setCurrentIndex(index);
     updateSimulationEmptyState();

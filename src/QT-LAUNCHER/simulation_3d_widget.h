@@ -2,6 +2,7 @@
 #define SIMULATION_3D_WIDGET_H
 
 #include "sfml_canvas.h"
+#include "custom_bh_dialog.h"  // for CustomBH3DConfig
 #include <memory>
 
 // Pimpl: all GL / simulation state lives in this struct, defined in the .cpp.
@@ -21,6 +22,9 @@ public:
     explicit Simulation3DWidget(QWidget *parent = nullptr);
     ~Simulation3DWidget();   // Non-inline: defined in .cpp where Sim3DState is complete
 
+    /// Store a custom config to be applied once onInit() runs (call before the widget is shown).
+    void setPendingConfig(const CustomBH3DConfig &cfg);
+
 protected:
     void onInit() override;
     void onUpdate() override;
@@ -33,6 +37,8 @@ protected:
 
 private:
     std::unique_ptr<Sim3DState> state_;
+    bool              hasPendingConfig_ = false;
+    CustomBH3DConfig  pendingConfig_;
 };
 
 #endif // SIMULATION_3D_WIDGET_H

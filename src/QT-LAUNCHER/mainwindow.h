@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QJsonObject>
+#include "custom_bh_dialog.h"
 
 class QListWidget;
 class QListWidgetItem;
@@ -52,7 +53,7 @@ private:
     void loadSettings();
     void saveSettings();
     void openSimulationTab2D(const QString &tabTitle, const QJsonObject &state = {});
-    void openSimulationTab3D(const QString &tabTitle);
+    void openSimulationTab3D(const QString &tabTitle, const CustomBH3DConfig *cfg = nullptr);
     void updateSimulationEmptyState();
     void refocusSimCanvas();
     QWidget *createOverviewPage();

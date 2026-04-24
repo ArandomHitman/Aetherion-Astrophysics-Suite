@@ -38,6 +38,8 @@
 #include <cstring>
 
 // oh boy i sure do love 1200 lines of code in one document!
+// Make your program modular, kids. This is what happens when you do this during the peak of your semester.
+
 
 // ────────────────────────────────────────────────────────────
 // Helper: set all scene-shader uniforms
@@ -389,10 +391,10 @@ static std::filesystem::path keybindConfigPath() {
     return base / "Library" / "Application Support" / "Aetherion" / "blackhole3d_keybinds.cfg";
 }
 
-static void enforceKeybindConflicts(ActionKeybinds& keys) {
-    const ActionKeybinds defaults{};
-    auto isMovementKey = [](sf::Keyboard::Key k) {
-        return k == sf::Keyboard::Key::W ||
+static void enforceKeybindConflicts(ActionKeybinds& keys) { // is this a good implementation? absolutely not! 
+    const ActionKeybinds defaults{};                        // If you're new to programming and looking over this, please don't do this.
+    auto isMovementKey = [](sf::Keyboard::Key k) {          // best practice is to have a single source of truth for keybinds and reference it everywhere, 
+        return k == sf::Keyboard::Key::W ||                 // but that would require a much larger refactor to do cleanly at this point. Maybe in beta 3 I can do this, but for now it works :shrug:
                k == sf::Keyboard::Key::A ||
                k == sf::Keyboard::Key::S ||
                k == sf::Keyboard::Key::D ||
@@ -534,8 +536,8 @@ static void drawDebugHUD(const GLBitmapFont& font, const DebugInfo& d)
 {
     auto onOff = [](bool v) -> const char* { return v ? "ON" : "OFF"; };
 
-    char buf[1024];
-    std::snprintf(buf, sizeof(buf),
+    char buf[1024]; // debug info badness, This will cause a buffer overflow somewhere down the line!
+    std::snprintf(buf, sizeof(buf),  // TODO: use a safer string-based approach here, this is just quick and dirty for now.
         "=== DEBUG ===\n"
         "Shader:      %s\n"
         "  photoreal: %s  |  simple: %s\n"
@@ -803,8 +805,11 @@ int main(int argc, char* argv[]) {
         if (!diskPath.empty()) simpleDiskTex = loadTexture2D(diskPath.c_str());
         if (!simpleDiskTex) {
             std::cerr << "No disk_texture.png found; generating procedural.\n";
-            simpleDiskTex = createDiskTextureProcedural(512);
-        }
+            simpleDiskTex = createDiskTextureProcedural(512); // ok so this sucks but i'm kind of also doing some physics homework at 11pm soooo
+        }       // FIX ME: this steps through full rotational increments per ring, meaning that at the outer layer 77% of pixels are transparent and 
+                // thus discarded by the shader, causing a significant performance hit. A better approach would be 
+                // to generate a texture with a fixed number of samples per ring, or to use a shader-based procedural 
+                // approach for the simple shader as well.
     }
 
     /*--------- Bloom pipeline ---------*/
@@ -876,13 +881,13 @@ int main(int argc, char* argv[]) {
             const auto& event = *evOpt;
             if (event.is<sf::Event::Closed>()) window.close();
 
-            if (const auto* kp = event.getIf<sf::Event::KeyPressed>()) {
+            if (const auto* kp = event.getIf<sf::Event::KeyPressed>()) { // "six seven"
                 keys.onKeyPressed(kp->code);
                 if (kp->code == actionKeys.toggleFreelook) {
                     camera.toggleMode();
                 } else if (kp->code == actionKeys.toggleJets) {
                     jetsEnabled = !jetsEnabled;
-                } else if (kp->code == actionKeys.toggleBLR) {
+                } else if (kp->code == actionKeys.toggleBLR) { // use a SWITCH statement dammit!
                     blrEnabled = !blrEnabled;
                 } else if (kp->code == actionKeys.toggleOrbBody) {
                     orbBodyEnabled = !orbBodyEnabled;
@@ -1028,9 +1033,9 @@ int main(int argc, char* argv[]) {
         snap.bhPosition       = config.blackHole.position;
         snap.bhSpin           = config.blackHole.spinParameter;
         snap.diskInnerRadius  = config.disk.innerRadius;
-        snap.diskOuterRadius  = config.disk.outerRadius;
-        snap.diskHalfThickness= config.disk.halfThickness;
-        snap.diskPeakTemp         = config.disk.peakTemp;
+        snap.diskOuterRadius  = config.disk.outerRadius; // aaaaaaand of course this section is where I found out that the disk radius values in the original shader were swapped, oops
+        snap.diskHalfThickness= config.disk.halfThickness; // to do for later: either separate this code block and the shading stuff into a "profile loader" header file, 
+        snap.diskPeakTemp         = config.disk.peakTemp;         // or just move the profile config loading to after shader compilation so I can fix the original shader's swapped radius issue 
         snap.diskDisplayTempInner = config.disk.displayTempInner;
         snap.diskDisplayTempOuter = config.disk.displayTempOuter;
         snap.diskSatBoostInner    = config.disk.saturationBoostInner;
@@ -1112,9 +1117,9 @@ int main(int argc, char* argv[]) {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            float rollDeg = snap.roll * (180.0f / 3.14159265f);
-
-            if (showHUD) {
+            float rollDeg = snap.roll * (180.0f / 3.14159265f); // Fun fact: This broke so many times because I forgot the whole purpose of radians to degrees was to avoid having to multiply 
+                                                                // BAFO 180/π every time I wanted to display the roll angle in degrees in the HUD, oops
+            if (showHUD) {  
                 drawHUD(glFont,
                         actionKeys,
                         snap.freelook,
@@ -1129,9 +1134,9 @@ int main(int argc, char* argv[]) {
                         snap.windowW, snap.windowH);
             }
 
-            if (showDebugHUD) {
+            if (showDebugHUD) { // I don't even have a comment for this one, it's actually fine, just a bit more verbose than needed.
                 DebugInfo dbg{};
-                dbg.cinematic      = snap.cinematicMode;
+                dbg.cinematic      = snap.cinematicMode; // side note: buffer overflow risk is minimal here since it's just a bool, but be careful if you make a PR with more fields!
                 dbg.freelook       = snap.freelook;
                 dbg.jets            = snap.jetsEnabled;
                 dbg.blr             = snap.blrEnabled;
@@ -1151,14 +1156,14 @@ int main(int argc, char* argv[]) {
                 drawDebugHUD(glFont, dbg);
             }
 
-            glDisable(GL_BLEND);
+            glDisable(GL_BLEND); // Nukes the HUD if something goes wrong in the next frame, but ensures no blending state leaks into the main scene rendering code.
         }
 
         window.display();
         while (glGetError() != GL_NO_ERROR) {}
     }
 
-    // All RAII objects auto-clean, but verify
+    // All RAII objects auto-clean, but verify. If this prints, destructors are running and cleaning up GL resources as expected.
     std::cerr << "All GL resources cleaned automatically.\n";
     return 0;
 }

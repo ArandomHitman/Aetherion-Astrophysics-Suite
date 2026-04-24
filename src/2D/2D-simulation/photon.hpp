@@ -17,7 +17,7 @@ struct Photon {
     // deflection tracking logic 
     double deflectionAngle = 0.0;   // total deflection in radians
     double deflectionDeg   = 0.0;   // total deflection in degrees
-    double phiInfinity     = 0.0;   // angle swept periapsis → ∞
+    double phiInfinity     = 0.0;   // angle swept periapsis as photon approaches infinity (used for deflection calculation)
 
     void computePath(const Schwarzschild& bh, double rMax = 1e5, double dphi = 0.0025) { // logic here is a little scuffed, 
         path.clear(); // but basically we integrate the photon's path in small angular steps until it either escapes (r → ∞) or is captured (crosses the event horizon). 
@@ -47,7 +47,7 @@ struct Photon {
         double ext_du  = state.du_dphi;
 
         const double horizonU = 1.0 / (bh.horizon() * 1.001); // capture threshold
-        const int maxSteps = 200000; // Call it overenginering, call it paranoia, but I want to avoid infinite loops, thank you very much :/
+        const int maxSteps = 200000; // Call it overenginering, call it paranoia, but I want to avoid infinite loops, thank you very much.
         auto startTime = std::chrono::steady_clock::now();
         constexpr int BUDGET_CHECK_INTERVAL = 512;
         constexpr auto TIME_BUDGET = std::chrono::milliseconds(50);
@@ -65,7 +65,9 @@ struct Photon {
 
             double r = 1.0 / state.u;
 
-            // NOTE: Capture: if the photon crosses the horizon (with a small safety margin) we consider it captured. We check this inside the loop because the photon could be on an unstable orbit and hover near the horizon for a while before finally crossing it, and we want to capture that behavior accurately.
+            // NOTE: Capture: if the photon crosses the horizon (with a small safety margin) we consider it captured. We check this inside 
+            // the loop because the photon could be on an unstable orbit and hover near the horizon for a while before finally crossing it, 
+            // and we want to capture that behavior accurately.
             if (state.u >= horizonU) { captured = true; break; }
 
             // Save outgoing state for extrapolation (u > 0 guaranteed here,
@@ -86,7 +88,7 @@ struct Photon {
 
         // Extrapolate φ to r = ∞ using the asymptotic flat-space solution.
         // Far from the black hole the Binet equation reduces to d²u/dφ² + u ≈ 0
-        // whose solution is u = A cos(φ − φ₀).  The remaining angle from an
+        // of which the solution is u = A cos(φ − φ₀).  The remaining angle from an
         // outgoing state (u, du/dφ) to the zero-crossing u = 0 (i.e. r → ∞) is
         // atan2(u, −du/dφ).  Using the last saved outgoing state makes this
         // sub-step accurate regardless of whether the loop terminated because
@@ -103,18 +105,32 @@ struct Photon {
         deflectionDeg   = deflectionAngle * 180.0 / M_PI;
 
         // Build full-resolution path for export BEFORE downsampling.
-        fullPath.reserve(2 * half.size());
-        for (int i = (int)half.size() - 1; i >= 0; --i) {
-            double r = half[i].first;
-            double phi_local = -half[i].second + phi_offset;
+        // Cap to MAX_EXPORT_HALF to prevent unbounded allocation on near-critical-impact photons.
+        // Previously had no cap, so at 120 rays × 200K steps this would cause a memory leak nearing ~500 MB.
+        // MAX_EXPORT_HALF gives 5× more detail than display while keeping memory bounded.
+        // [FIXED 2026-04-24: added stride-sampled cap, was reserve(2*half.size()) with no limit]
+        static constexpr int MAX_EXPORT_HALF = 5000;
+        const std::vector<std::pair<double,double>>* exportSrc = &half;
+        std::vector<std::pair<double,double>> exportSampled;
+        if ((int)half.size() > MAX_EXPORT_HALF) {
+            exportSampled.reserve(MAX_EXPORT_HALF);
+            float stride = float(half.size() - 1) / float(MAX_EXPORT_HALF - 1);
+            for (int s = 0; s < MAX_EXPORT_HALF; ++s)
+                exportSampled.push_back(half[size_t(s * stride + 0.5f)]);
+            exportSrc = &exportSampled;
+        }
+        fullPath.reserve(2 * exportSrc->size());
+        for (int i = (int)exportSrc->size() - 1; i >= 0; --i) {
+            double r = (*exportSrc)[i].first;
+            double phi_local = -(*exportSrc)[i].second + phi_offset;
             fullPath.push_back({
                 (float)(r * std::cos(phi_local)),
                 (float)(r * std::sin(phi_local))
             });
         }
-        for (size_t i = 0; i < half.size(); ++i) {
-            double r = half[i].first;
-            double phi_local = half[i].second + phi_offset;
+        for (size_t i = 0; i < exportSrc->size(); ++i) {
+            double r = (*exportSrc)[i].first;
+            double phi_local = (*exportSrc)[i].second + phi_offset;
             fullPath.push_back({
                 (float)(r * std::cos(phi_local)),
                 (float)(r * std::sin(phi_local))
@@ -124,10 +140,9 @@ struct Photon {
         // Downsample half-path for display: cap to MAX_DISPLAY_HALF points to
         // prevent huge allocations for strongly-lensed near-critical-impact
         // photons (which can accumulate up to 200K integration steps).
-        // At 120 rays this was previously capable of exceeding 384 MB.
         // I learned this the hard way by running it on Sgr A* and watching the process balloon.
         // do not remove this limit.
-        static constexpr int MAX_DISPLAY_HALF = 1000;
+        static constexpr int MAX_DISPLAY_HALF = 1000; 
         if ((int)half.size() > MAX_DISPLAY_HALF) {
             std::vector<std::pair<double,double>> sampled;
             sampled.reserve(MAX_DISPLAY_HALF);
@@ -156,5 +171,5 @@ struct Photon {
             });
         }
     }
-}; // fun fact! I spent 10 minutes trying to figure out why my code wouldn't compile, including rewriting a quarter of this file, only to find that everything
-// was caused by forgetting this semicolon! I'm tired, boss.....
+};  // fun fact! I spent 10 minutes trying to figure out why my code wouldn't compile, including rewriting a quarter of this file, only to find that everything
+    // was caused by forgetting this semicolon! 

@@ -90,6 +90,10 @@ add_executable(blackhole-sim
     # Keybind remapping widget (requires AUTOMOC for Q_OBJECT)
     src/QT-LAUNCHER/keybindbuttonwidget.h
     src/QT-LAUNCHER/keybindbuttonwidget.cpp
+
+    # Custom black hole builder dialog
+    src/QT-LAUNCHER/custom_bh_dialog.h
+    src/QT-LAUNCHER/custom_bh_dialog.cpp
     
     # 2D/3D integration files should be linked as libraries or refactored modules,
     # not standalone entrypoints with their own main().

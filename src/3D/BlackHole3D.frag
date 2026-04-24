@@ -3,7 +3,7 @@
 // Author: Copilot (GPT-4.1)
 // Usage: Render a full-screen quad with this shader. Provide a background texture and set uniforms as needed.
 
-#version 330 core
+#version 330 core // Fun fact: This was released back in 2010. Should I use it? maybe not, but for compatibility sake we will make do.
 
 in vec2 fragUV; // UV coordinates from vertex shader (0,0) to (1,1)
 out vec4 FragColor;
@@ -31,14 +31,23 @@ uniform int   showBlueshift;     // Toggle gravitational blueshift of background
 uniform float spinParameter;     // Kerr spin parameter (0-1)
 
 uniform float uTime;             // Elapsed time for animation
+uniform int   showJets;          // Toggle jet emission (J key)     [ADDED 2026-04-24: was unconditional]
+uniform int   showBLR;           // Toggle Broad Line Region          [ADDED 2026-04-24: uniform existed on CPU, never declared here]
+uniform float blrInnerRadius;    // BLR inner edge (world units)     [ADDED 2026-04-24]
+uniform float blrOuterRadius;    // BLR outer edge (world units)     [ADDED 2026-04-24]
+uniform float blrThickness;      // BLR vertical half-thickness      [ADDED 2026-04-24]
 
 // Constants
-const int MAX_STEPS = 140;
-const float MAX_DIST = 140.0;
+const int MAX_STEPS = 140; // FIXME: This is quite possibly the WORST way to do this.
+// MAX_DIST was hardcoded 140.0 — REMOVED 2026-04-24. Scene radius is now computed dynamically
+// from diskOuterRadius/jetLength inside traceBentRay and main() so large configs (e.g. outer=200 Rs)
+// no longer clip the outer disk or jet tips. The maxStepsOverride uniform still does nothing
+// (it's declared on the CPU and sent every frame but never read here — see the original sin above).
+// Fixing that is left as an exercise for a future, more caffeinated author.
 const float EPSILON = 1e-4;
 const float PI = 3.14159265359;
 
-// Utility: Convert screen UV to world ray direction
+// Utility: Convert screen UV to world ray direction - standard FPS type camera behavior.
 vec3 getRayDir(vec2 uv, vec3 camPos, vec3 camDir, vec3 camUp, float fov) {
     float aspect = resolution.x / resolution.y;
     float px = (uv.x - 0.5) * 2.0 * aspect;
@@ -143,8 +152,10 @@ vec3 applyFrequencyShift(vec3 color, float freqRatio) {
     }
 
     // Relativistic intensity: I_obs ∝ D^3 (Liouville's theorem)
+    // Cap raised to 20 [FIXED 2026-04-24: was lowered to 8 which under-lit the disk;
+    // 50 was the original (blew out large-disk configs), 20 is the balance]
     float brightFactor = pow(clamp(freqRatio, 0.05, 12.0), 2.5);
-    brightFactor = min(brightFactor, 50.0);
+    brightFactor = min(brightFactor, 20.0);
     return max(shifted * brightFactor, vec3(0.0));
 }
 
@@ -211,15 +222,20 @@ void traceBentRay(
     out vec3 outDir,
     out bool absorbed,
     out vec3 outJet,
-    out vec4 outDisk)
+    out vec4 outDisk,
+    out vec3 outBLR)
 {
     vec3 pos = ro;
     vec3 dir = normalize(rd);
     absorbed = false;
     outJet = vec3(0.0);
     outDisk = vec4(0.0);
+    outBLR = vec3(0.0);
 
-    float stepLen = MAX_DIST / float(MAX_STEPS);
+    // Scene radius scales with the largest user-configured feature so the full disk/jets are always reached.
+    // [FIXED 2026-04-24: was hardcoded MAX_DIST=140.0, which clipped outer disk/jets on large configs]
+    float sceneRadius = max(max(diskOuterRadius, jetLength) * 1.5, 140.0);
+    float baseStep = sceneRadius / float(MAX_STEPS);
     // Strength factor tuned by hand; scale by bhRadius so users can tweak via uniform.
     float k = bhRadius * bhRadius * 1;
 
@@ -228,20 +244,49 @@ void traceBentRay(
     for (int i = 0; i < MAX_STEPS; ++i) {
         vec3 toBH = bhPos - pos;
         float r = length(toBH);
-        if (r < bhRadius + EPSILON) {
-            absorbed = true;
-            break;
+
+        // Exact EH absorption: check if this step segment intersects the event horizon sphere.
+        // [FIXED 2026-04-24: replaced the old 'r < bhRadius + EPSILON' point-check, which missed
+        //  near-grazing rays when stepLen ≥ bhRadius (the step would skip over the horizon),
+        //  producing the bright seam / 'hole' at the shadow edge. Sphere intersection is exact
+        //  regardless of step size, so there is no need to change stepLen near the BH.]
+        {
+            float tca = dot(toBH, dir);     // signed distance to closest approach
+            float d2  = dot(toBH, toBH) - tca * tca;  // squared miss distance
+            if (d2 < bhRadius * bhRadius) {
+                float thc = sqrt(bhRadius * bhRadius - d2);
+                float tHit = tca - thc;     // entry intersection along ray
+                if (tHit >= 0.0 && tHit <= baseStep) {
+                    absorbed = true;
+                    break;
+                }
+            }
         }
 
-        // Accumulate jet emission along the path.
-        outJet += jetEmission(pos, bhPos) * stepLen;
+        // Jet emission — gated by showJets toggle.
+        // [FIXED 2026-04-24: was unconditional; showJets uniform was declared on CPU but never read here]
+        if (showJets != 0)
+            outJet += jetEmission(pos, bhPos) * baseStep;
+
+        // BLR volumetric fog — gated by showBLR toggle.
+        // [ADDED 2026-04-24: showBLR/blrInnerRadius/blrOuterRadius/blrThickness uniforms were sent
+        //  from CPU every frame but never declared in the shader, so BLR was always invisible]
+        if (showBLR != 0) {
+            float blrAbsY = abs((pos - bhPos).y);
+            if (r > blrInnerRadius && r < blrOuterRadius && blrAbsY < blrThickness) {
+                float radFade = smoothstep(blrInnerRadius, blrInnerRadius * 1.2, r)
+                              * smoothstep(blrOuterRadius, blrOuterRadius * 0.85, r);
+                float vertFade = smoothstep(blrThickness, blrThickness * 0.4, blrAbsY);
+                outBLR += vec3(0.65, 0.82, 1.0) * 0.012 * radFade * vertFade * baseStep;
+            }
+        }
 
         // Detect crossing of the disk plane and sample if within thickness.
         float diskSide = (pos - bhPos).y;
         if (sign(diskSide) != sign(lastDiskSide)) {
             // Approximate intersection point at the plane.
             float t = lastDiskSide / max(lastDiskSide - diskSide, EPSILON);
-            vec3 hitPos = mix(pos - dir * stepLen, pos, clamp(t, 0.0, 1.0));
+            vec3 hitPos = mix(pos - dir * baseStep, pos, clamp(t, 0.0, 1.0));
             vec4 d = sampleDiskRGBA(hitPos, bhPos);
             if (d.a > 0.001) {
                 outDisk = d;
@@ -255,8 +300,8 @@ void traceBentRay(
         vec3 pullDir = toBH / max(r, EPSILON);
         // Inverse-square-ish pull; softened for stability
         float strength = k / (r * r + bhRadius * bhRadius);
-        dir = normalize(dir + pullDir * strength * stepLen);
-        pos += dir * stepLen;
+        dir = normalize(dir + pullDir * strength * baseStep);
+        pos += dir * baseStep;
     }
 
     outPos = pos;
@@ -280,7 +325,8 @@ void main() {
     bool absorbed;
     vec3 jetAcc;
     vec4 diskHit;
-    traceBentRay(rayOrigin, rayDir, blackHolePos, blackHoleRadius, bentPos, bentDir, absorbed, jetAcc, diskHit);
+    vec3 blrAcc;
+    traceBentRay(rayOrigin, rayDir, blackHolePos, blackHoleRadius, bentPos, bentDir, absorbed, jetAcc, diskHit, blrAcc);
     if (absorbed) {
         FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         return;
@@ -295,21 +341,25 @@ void main() {
     float gCamera = sqrt(max(1.0 - blackHoleRadius / rCamera, 0.001));
     float bgFreqShift = (showBlueshift != 0 && gCamera < 0.98) ? (1.0 / max(gCamera, 0.02)) : 1.0;
 
+    // Scene radius for background sampling — must match what traceBentRay uses.
+    float sceneRadius = max(max(diskOuterRadius, jetLength) * 1.5, 140.0);
+
     if (diskHit.a > 0.001) {
         vec3 rel = (bentPos - blackHolePos);
         vec3 diskCol = applyDoppler(diskHit.rgb, rel, bentDir);
-        // Composite disk over background.
-        vec3 bg = sampleBackground(bentPos + bentDir * 40.0, blackHolePos);
+        // Composite disk over background — scale look-ahead with scene so stars aren't sampled
+        // inside the disk on large configs [FIXED 2026-04-24: was hardcoded 40.0]
+        vec3 bg = sampleBackground(bentPos + bentDir * max(diskOuterRadius * 0.5, 40.0), blackHolePos);
         if (bgFreqShift > 1.01) bg = applyFrequencyShift(bg, bgFreqShift);
         color = mix(bg, diskCol, diskHit.a);
     } else {
         // Sample far along the bent ray for the background.
-        color = sampleBackground(bentPos + bentDir * (MAX_DIST * 0.5), blackHolePos);
+        color = sampleBackground(bentPos + bentDir * (sceneRadius * 0.5), blackHolePos);
         if (bgFreqShift > 1.01) color = applyFrequencyShift(color, bgFreqShift);
     }
 
-    // Add jets (emissive)
-    color += jetAcc;
+    // Add emissive contributions (jets + BLR volumetric)
+    color += jetAcc + blrAcc;
 
     // Photon ring handled by ray marching; no screen-space rim needed
 
