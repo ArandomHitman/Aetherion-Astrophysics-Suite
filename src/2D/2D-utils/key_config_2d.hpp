@@ -101,6 +101,7 @@ struct KeyConfig2D {
     sf::Keyboard::Key togglePhoton       = sf::Keyboard::Key::P;
     sf::Keyboard::Key toggleGalaxy       = sf::Keyboard::Key::G;
     sf::Keyboard::Key toggleInfluence    = sf::Keyboard::Key::I;
+    sf::Keyboard::Key toggleHighResLensing = sf::Keyboard::Key::L;
     sf::Keyboard::Key speedUp            = sf::Keyboard::Key::Equal;
     sf::Keyboard::Key speedDown          = sf::Keyboard::Key::Hyphen;
     sf::Keyboard::Key tempDown           = sf::Keyboard::Key::Comma;

@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QJsonObject>
 #include "custom_bh_dialog.h"
+#include "updater.h"
 
 class QListWidget;
 class QListWidgetItem;
@@ -42,6 +43,7 @@ private slots:
     void onRecentFileSelected(QListWidgetItem *item);
     void onRecentItemContextMenu(const QPoint &pos);
     void updateMemoryDisplay();
+    void checkForUpdatesManual();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -94,6 +96,8 @@ private:
 
     // Runtime state loaded from QSettings
     bool memoryDisplayEnabled = true;
+
+    Updater *m_updater = nullptr;
 };
 
 #endif // MAINWINDOW_H

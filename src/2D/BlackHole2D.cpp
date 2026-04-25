@@ -170,7 +170,8 @@ int main(int argc, char* argv[]) {
     Renderer renderer(window);
     UIState  ui;
 
-    // CLI: --preset <id>  (ton618, sgra, 3c273, j0529, m87, cygnusx1, gw150914, intermediate, primordial)
+    // CLI: --preset <id>  (ton618, sgra, 3c273, j0529, m87, cygnusx1, gw150914, intermediate, primordial,
+    //                       gaiabh1, gaiabh2, gaiabh3, v404cyg, a062000, groj165540, ngc1277, oj287)
     // useful for screenshots and demos — lets you launch directly into a specific black hole without
     // clicking through the menu. the string-to-index mapping below is clunky but there aren't that many
     // presets so I'm not going to build a proper lookup table for it
@@ -187,6 +188,14 @@ int main(int argc, char* argv[]) {
             else if (id == "gw150914")     idx = 6;
             else if (id == "intermediate") idx = 7;
             else if (id == "primordial")   idx = 8;
+            else if (id == "gaiabh1")      idx = 9;
+            else if (id == "gaiabh2")      idx = 10;
+            else if (id == "gaiabh3")      idx = 11;
+            else if (id == "v404cyg")      idx = 12;
+            else if (id == "a062000")      idx = 13;
+            else if (id == "groj165540")   idx = 14;
+            else if (id == "ngc1277")      idx = 15;
+            else if (id == "oj287")        idx = 16;
             if (idx >= 0 && idx < NUM_BH2D_PRESETS) {
                 ui.presetActive = true;
                 ui.presetIdx    = idx;

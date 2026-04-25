@@ -34,6 +34,9 @@ public:
                 case GalaxyBodyType::GasCloud:       baseW = 16.0; baseH = 14.0;  break;
                 case GalaxyBodyType::StellarCluster:  baseW = 20.0; baseH = 20.0;  break;
                 case GalaxyBodyType::DwarfGalaxy:    baseW = 24.0; baseH = 18.0;  break;
+                case GalaxyBodyType::NeutronStar:    baseW = 5.0;  baseH = 5.0;   break;
+                case GalaxyBodyType::WhiteDwarf:     baseW = 7.0;  baseH = 7.0;   break;
+                case GalaxyBodyType::CompanionStar:  baseW = 11.0; baseH = 11.0;  break;
             }
         }
         vis.width  = (float)(baseW * stretch);
@@ -59,6 +62,12 @@ public:
                     base_r = 200; base_g = 220; base_b = 255; break;
                 case GalaxyBodyType::DwarfGalaxy:
                     base_r = 255; base_g = 200; base_b = 255; break;
+                case GalaxyBodyType::NeutronStar:
+                    base_r = 160; base_g = 200; base_b = 255; break;
+                case GalaxyBodyType::WhiteDwarf:
+                    base_r = 200; base_g = 215; base_b = 255; break;
+                case GalaxyBodyType::CompanionStar:
+                    base_r = 255; base_g = 200; base_b = 140; break;
             }
         }
 

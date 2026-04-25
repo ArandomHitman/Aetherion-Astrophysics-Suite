@@ -27,6 +27,7 @@ struct UIState {
     bool   showCaustics      = false;
     bool   showNumericalError = false;
     bool   showControlsPanel  = true;   // toggleable controls list
+    bool   highResLensing    = false;   // log-spaced extra rays near b_crit
     std::string notification;
     int    notificationTimer = 0;
 
@@ -178,6 +179,12 @@ inline void handleInput(
 
     } else if (code == cfg.toggleInfluence) {
         ui.showInfluenceZones = !ui.showInfluenceZones;
+
+    } else if (code == cfg.toggleHighResLensing) {
+        ui.highResLensing = !ui.highResLensing;
+        sim.rebuildPhotons(windowHeight, ui.highResLensing);
+        ui.notification = ui.highResLensing ? "High-res lensing ON" : "High-res lensing OFF";
+        ui.notificationTimer = 90;
 
     } else if (code == cfg.speedUp) {
         ui.timeScale = std::min(64.0, ui.timeScale * 2.0);

@@ -45,7 +45,7 @@ endif()
 
 
 # Find Qt6
-find_package(Qt6 COMPONENTS Core Gui Widgets Charts REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets Charts Network REQUIRED)
 
 # Accept any installed SFML (2.x or 3.x). Homebrew provides SFML 3.x on macOS.
 # Use SFML component names with correct capitalization (SFML 3 expects e.g. "Graphics").
@@ -94,7 +94,11 @@ add_executable(blackhole-sim
     # Custom black hole builder dialog
     src/QT-LAUNCHER/custom_bh_dialog.h
     src/QT-LAUNCHER/custom_bh_dialog.cpp
-    
+
+    # Auto-updater (checks GitHub Releases)
+    src/QT-LAUNCHER/updater.h
+    src/QT-LAUNCHER/updater.cpp
+
     # 2D/3D integration files should be linked as libraries or refactored modules,
     # not standalone entrypoints with their own main().
     src/3D/shader_utils.cpp
@@ -109,10 +113,16 @@ target_include_directories(blackhole-sim PRIVATE
     ${CMAKE_SOURCE_DIR}
 )
 
-target_link_libraries(blackhole-sim PRIVATE 
-    Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Charts
+target_link_libraries(blackhole-sim PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Charts Qt6::Network
     SFML::Graphics SFML::Window SFML::System
     OpenGL::GL
+)
+
+# ── Application version (must match the GitHub release tag, without 'v') ──
+set(AETHERION_VERSION "0.1.0")
+target_compile_definitions(blackhole-sim PRIVATE
+    AETHERION_VERSION="${AETHERION_VERSION}"
 )
 
 # GLEW for non-Apple platforms

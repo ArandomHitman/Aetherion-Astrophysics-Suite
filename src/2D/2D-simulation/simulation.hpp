@@ -58,6 +58,7 @@ public:
     // Pulsar orbital scenario state
     PulsarState        pulsarState;
     PulsarOrbitalData  pulsarData;
+    bool               tidalDisrupted = false; // set when tidal test body crosses disruption threshold
 
     Simulation() {
         bodies.emplace_back(bh.metric, 10.0 * bh.metric.M, 0.3);
@@ -80,9 +81,13 @@ public:
         // Update pulsar orbital scenario if active
         if (activeScenario == ResearchScenario::PulsarOrbital)
             updatePulsar(dtSim);
+
+        // Update tidal disruption scenario if active
+        if (activeScenario == ResearchScenario::TidalDisruption)
+            updateTidalDisruption(dtSim);
     }
 
-    void rebuildPhotons(unsigned int windowHeight) {
+    void rebuildPhotons(unsigned int windowHeight, bool highRes = false) {
         photons.clear();
         double halfHeightM = ((double)windowHeight * 0.5) / params.pixelsPerM;
 
@@ -90,7 +95,6 @@ public:
         // uniform-in-b is NOT the ideal sampling near b_crit, where deflection changes
         // really fast and you'd want to cluster more rays there. but it looks good on screen
         // and changing it would mess up the visual spacing, so here we are.
-        // TODO: maybe add a separate "high resolution lensing" mode with log-spaced b near b_crit?
         for (int i = 0; i < params.numRays; ++i) {
             double t = (params.numRays <= 1)
                      ? 0.5
@@ -101,6 +105,26 @@ public:
             p.impactParameter = b;
             p.computePath(bh.metric, params.rMaxIntegrate);
             photons.push_back(std::move(p));
+        }
+
+        // High-res lensing mode: add extra rays log-spaced near b_crit on both sides.
+        // These show the strong-lensing regime in much finer detail without disturbing
+        // the uniform background grid.
+        if (highRes) {
+            double b_crit = bh.metric.criticalImpact();
+            constexpr int N_HIGHRES = 20; // rays per side
+            for (int sign : {-1, 1}) {
+                for (int i = 0; i < N_HIGHRES; ++i) {
+                    double t = (double)i / (double)(N_HIGHRES - 1);
+                    // epsilon log-spaced from 1e-3 to 0.2 (0.1% to 20% offset from b_crit)
+                    double eps = std::exp(std::log(1e-3) + t * (std::log(0.2) - std::log(1e-3)));
+                    double b = b_crit * (1.0 + sign * eps);
+                    Photon p;
+                    p.impactParameter = b;
+                    p.computePath(bh.metric, params.rMaxIntegrate, 0.001); // finer angular step near b_crit
+                    photons.push_back(std::move(p));
+                }
+            }
         }
 
         // Rebuild lensing analysis
@@ -489,7 +513,8 @@ public:
 
     /*--------- Tidal disruption demo ---------*/
     void startTidalDisruption() {
-        activeScenario = ResearchScenario::TidalDisruption;
+        activeScenario  = ResearchScenario::TidalDisruption;
+        tidalDisrupted  = false;
         bodies.clear();
 
         double M = bh.metric.M;
@@ -501,6 +526,23 @@ public:
         ob.label = "Tidal test body";
         bodies.push_back(std::move(ob));
         selectedBodyIdx = 0;
+    }
+
+    void updateTidalDisruption(double /*dtSim*/) {
+        if (bodies.empty() || tidalDisrupted) return;
+        const auto& body = bodies[0];
+        if (body.captured) {
+            tidalDisrupted = true;
+            return;
+        }
+        // Tidal disruption threshold: ~8 M is where tidal stress overwhelms
+        // self-gravity for a solar-type star around a typical BH.  This is a
+        // first-order approximation — real r_tidal depends on stellar density.
+        double r_tidal = 8.0 * bh.metric.M;
+        if (body.r < r_tidal) {
+            tidalDisrupted = true;
+            bodies[0].label = "!! TIDAL DISRUPTION !!";
+        }
     }
 
     /*--------- Data panel info builder ---------*/

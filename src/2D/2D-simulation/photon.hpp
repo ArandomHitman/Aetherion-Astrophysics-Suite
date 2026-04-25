@@ -151,7 +151,7 @@ struct Photon {
                 sampled.push_back(half[size_t(s * stride + 0.5f)]);
             half = std::move(sampled);
         }
-        path.reserve(2 * half.size());
+        path.reserve(2 * half.size()); // 
 
         // Build full path: incoming (mirror of outgoing) then outgoing
         for (int i = (int)half.size() - 1; i >= 0; --i) {

@@ -42,6 +42,8 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QDialog>
+#include <QTextEdit>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QSplitter>
 #include <QPainter>
@@ -135,6 +137,65 @@ MainWindow::MainWindow(QWidget *parent)
         memoryTimer->start(2000);
         updateMemoryDisplay();
     }
+
+    // Auto-update check: runs 4 s after startup so it never delays the UI.
+    // Respects the "auto-check" preference stored in QSettings.
+    m_updater = new Updater(this);
+    {
+        QSettings s("Aetherion", "AetherionSuite");
+        if (s.value("updates/autoCheck", true).toBool()) {
+            QTimer::singleShot(4000, m_updater, [this]() {
+                m_updater->checkForUpdates(/*silent=*/true);
+            });
+        }
+
+        // If we just relaunched after an automatic update, show the changelog
+        // once the window is fully visible (slight delay avoids drawing over
+        // the startup animation).
+        const QString postTag   = s.value("updates/postUpdateTag").toString();
+        const QString postNotes = s.value("updates/postUpdateChangelog").toString();
+        if (!postTag.isEmpty()) {
+            s.remove("updates/postUpdateTag");
+            s.remove("updates/postUpdateChangelog");
+            s.sync();
+
+            QTimer::singleShot(800, this, [this, postTag, postNotes]() {
+                QDialog *dlg = new QDialog(this);
+                dlg->setAttribute(Qt::WA_DeleteOnClose);
+                dlg->setWindowTitle(QStringLiteral("Updated to %1").arg(postTag));
+                dlg->setMinimumSize(520, 380);
+
+                auto *layout = new QVBoxLayout(dlg);
+                layout->setSpacing(12);
+                layout->setContentsMargins(16, 16, 16, 12);
+
+                auto *heading = new QLabel(
+                    QStringLiteral("<b>Aetherion has been updated to %1</b>").arg(postTag), dlg);
+                heading->setTextFormat(Qt::RichText);
+                layout->addWidget(heading);
+
+                auto *notes = new QTextEdit(dlg);
+                notes->setReadOnly(true);
+                notes->setPlainText(postNotes.isEmpty()
+                    ? QStringLiteral("No release notes provided.")
+                    : postNotes);
+                notes->setFrameShape(QFrame::StyledPanel);
+                layout->addWidget(notes, /*stretch=*/1);
+
+                auto *btnBox = new QDialogButtonBox(QDialogButtonBox::Ok, dlg);
+                connect(btnBox, &QDialogButtonBox::accepted, dlg, &QDialog::accept);
+                layout->addWidget(btnBox);
+
+                dlg->show();
+            });
+        }
+    }
+}
+
+void MainWindow::checkForUpdatesManual()
+{
+    if (m_updater)
+        m_updater->checkForUpdates(/*silent=*/false);
 }
 
 MainWindow::~MainWindow()
@@ -2159,6 +2220,37 @@ QWidget* MainWindow::createSettingsPage()
         }
         expLay->addWidget(makeFormRow("Default format:", exportTypeCombo));
         lay->addWidget(expCard);
+
+        // ── Updates card ────────────────────────────────────────────────────
+        QFrame *updCard = makeCard();
+        QVBoxLayout *updLay = new QVBoxLayout(updCard);
+        updLay->setContentsMargins(16, 12, 16, 16);
+        updLay->setSpacing(8);
+        updLay->addWidget(makeGroupHdr("UPDATES"));
+
+        // Current version label
+        QLabel *verLabel = new QLabel(
+            QString("Current version: <b>%1</b>").arg(Updater::currentVersion()));
+        verLabel->setTextFormat(Qt::RichText);
+        updLay->addWidget(verLabel);
+
+        // Auto-check checkbox
+        QCheckBox *autoCheckBox = new QCheckBox("Automatically check for updates on startup");
+        autoCheckBox->setChecked(s.value("updates/autoCheck", true).toBool());
+        connect(autoCheckBox, &QCheckBox::toggled, this, [](bool checked) {
+            QSettings ss("Aetherion", "AetherionSuite");
+            ss.setValue("updates/autoCheck", checked);
+        });
+        updLay->addWidget(autoCheckBox);
+
+        // Manual check button
+        QPushButton *checkNowBtn = new QPushButton("Check for Updates…");
+        checkNowBtn->setFixedWidth(180);
+        connect(checkNowBtn, &QPushButton::clicked,
+                this, &MainWindow::checkForUpdatesManual);
+        updLay->addWidget(checkNowBtn);
+
+        lay->addWidget(updCard);
 
         lay->addStretch();
         scroll->setWidget(content);

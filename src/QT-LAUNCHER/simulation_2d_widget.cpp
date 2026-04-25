@@ -62,6 +62,9 @@ static std::string buildHUD(const Simulation& sim, const UIState& ui) {
                     case GalaxyBodyType::GasCloud:       nGas++;     break;
                     case GalaxyBodyType::StellarCluster: nCluster++; break;
                     case GalaxyBodyType::DwarfGalaxy:    nDwarf++;   break;
+                    case GalaxyBodyType::NeutronStar:    nStars++;   break;
+                    case GalaxyBodyType::WhiteDwarf:     nStars++;   break;
+                    case GalaxyBodyType::CompanionStar:  nStars++;   break;
                 }
             }
             ss << "Galaxy system: ";
@@ -381,6 +384,9 @@ void Simulation2DWidget::onUpdate()
                 case GalaxyBodyType::GasCloud:       labelColor = sf::Color(255, 150, 100); break;
                 case GalaxyBodyType::StellarCluster: labelColor = sf::Color(200, 220, 255); break;
                 case GalaxyBodyType::DwarfGalaxy:    labelColor = sf::Color(255, 200, 255); break;
+                case GalaxyBodyType::NeutronStar:    labelColor = sf::Color(160, 200, 255); break;
+                case GalaxyBodyType::WhiteDwarf:     labelColor = sf::Color(200, 215, 255); break;
+                case GalaxyBodyType::CompanionStar:  labelColor = sf::Color(255, 200, 140); break;
             }
             renderer_->drawBodyLabel(bodyVis.screenPos, body.label, labelColor);
         }

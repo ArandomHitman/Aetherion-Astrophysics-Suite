@@ -496,7 +496,7 @@ static std::vector<OrbitalBody> makeBodies(const BlackHoleProfile& prof) {
 // ─────────────────────────────────────────────────────────────
 struct Sim3DState {
     // Profiles and current config
-    std::array<BlackHoleProfile, 4> profiles;
+    std::array<BlackHoleProfile, 12> profiles;
     int                           profileIdx = 0;
     cfg::SimConfig                config;
 
